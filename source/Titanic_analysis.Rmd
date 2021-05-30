@@ -52,7 +52,7 @@ A continuación mostramos el diccionario de datos:
 |parch|Número de padres/hijos también en el Titanic.|
 |ticket|Código alfanumérico del billete.|
 |fare| Precio del billete. |
-|cabin| Número de cabina. |
+|cabin| Código alfanumérico de cabina. |
 |embarked| Puerto de embarque. | C = Cherbourg, Q = Queenstown, S&nbsp;=&nbsp;Southampton
 
 # Integración y selección de los datos de interés a analizar.
@@ -77,5 +77,262 @@ Como podemos ver todos los registros son únicos:
 ```{r}
 any(duplicated(df[,-1]))
 ```
+
+Respecto a la selección de datos:
+
++ Como no nos interesa restringirnos a un grupo en particular mantendremos en este punto todos los registros. 
+
++ Nos quedaremos también todas las variables, dado que todas parece que puedan estar relacionadas con el objetivo, y eliminaremos las que no nos sean útiles más adelante
+en un proceso de selección de variables.
+
+# Limpieza de datos
+
+## Busqueda de valores nulos
+
+Como primer punto de la limpieza de datos y de cara a identificar los valores desconocidos que pueda haber no identificados como tales (como `NA`), 
+analizaremos la estructura del conjunto de datos, 
+haremos las conversiones de variables necesarias 
+y obtendremos una descripción preliminar de los datos. 
+
+La estructura de los datos tal y como los ha leido `R` es como sigue:
+```{r}
+str(df)
+```
+
+Como podemos ver hay muchas variables cuyo tipo debemos cambiar: 
+
++ `Survived`, `Sex` y `Cabin` (dado que mucha gente comparte cabina), y `Embarked` deberían ser factores.
+
++ `Ticket` también debería ser un factor, dado que no es único, 
+si no que hay pasajeros que comparten un mismo ticket (y no es porque sean `NA`o `''`):
+
+```{r}
+table(duplicated(df['Ticket']))
+head(df[duplicated(df['Ticket']), c('Ticket')])
+```
+
++ `Pclass` debería ser un factor ordenado donde el nivel más bajo fuese 3 y el más alto 1.
+
++ `SibSp` y `Parch` deberían ser enteros, si bien este cambio no suele impactar demasiado en los análisis.
+
+Mantendremos `PassengerId` como número, 
+siendo conscientes de que es en realidad la clave primaria de nuestros datos.
+
+Hacemos las conversiones necesarias:
+
+```{r}
+df[, c('Survived', 'Sex', 'Ticket', 'Cabin', 'Embarked')] = 
+  lapply(df[, c('Survived', 'Sex', 'Ticket', 'Cabin', 'Embarked')], factor)
+df[, 'Pclass'] = factor(df[,'Pclass'], ordered = TRUE, levels = c(3,2,1))
+df[, c('SibSp', 'Parch')] = lapply(df[, c('SibSp', 'Parch')], as.integer)
+```
+
+Analizamos ahora por encima los datos que tenemos según su tipo.
+
+Comenzamos por las variables numéricas:
+
+```{r}
+summary(Filter(is.numeric, df))
+```
+
+Podemos ver que sólo a un registro le falta información de `Fare`. 
+Por otra parte también vemos que 263 registros no tienen la edad informada.
+Esto sí que es un posible problema que necesitaremos subsanar, 
+dado que una posible politica de supervivencia prioritaria aplicada durante el hundimiento del Titanic podría ser "Mujeres y niños primero".
+Del resto de variables sólo la cantidad de ceros en `Parch` nos hace pensar que puedan ser valores desconocidos, 
+pero teniendo en cuenta el significado de la variable parece normal.
+
+Estudiamos también los factores:
+
+```{r}
+summary(Filter(is.factor, df))
+```
+
+Vemos por una parte los 418 valores desconocidos que ya conocíamos en la variable `Survived`. 
+También vemos dos valores `NA` encubiertos en las variables `Cabin` y `Embarked` que convertimos en `NA`, tras lo cual eliminamos el nivel que les corresponde:
+
+```{r}
+# Cabin
+df[df['Cabin']=='', 'Cabin']  = NA
+df[,'Cabin'] = droplevels(df[,'Cabin'])
+# Embarked
+df[df['Embarked']=='', 'Embarked']  = NA
+df[,'Embarked'] = droplevels(df[,'Embarked'])
+```
+
+## Reconocimiento de valores extremos
+
+Estudiamos ahora los posibles valores extremos que pueda haber en el conjunto de datos. 
+Realizamos para ello un diagrama de caja de cada una de las variables numéricas: 
+
+```{r, fig.width=9, fig.height=9, warning=FALSE}
+library(ggplot2)
+PrettyBoxplot= function(var1) {
+  bp = ggplot(df, aes(y = get(var1))) + geom_boxplot(outlier.colour="blue") + 
+    ggtitle(paste("Boxplot de la variable", var1)) + ylab("") +
+    theme(plot.title = element_text(hjust = 0.5))
+  return(bp)
+}
+
+gridExtra::grid.arrange(grobs = lapply(colnames(Filter(is.numeric, df[,-1])), PrettyBoxplot))
+```
+
+### Variable `Age`
+
+El diagrama de caja de la variable `Age` muestra que hubo personas de edad avanzada en el Titanic, pero no muestra ningún valor que pudiese considerarse extremo.
+
+### Variable `SibSp`
+
+El diagrama de caja de la variable `SibSp` muestra que el 75% de los embarcados en el Titanic venían solos o acompañados de un sólo hermano o hermana. 
+Como consecuencia todos los valores más grandes que 3 son numéricamente valores extremos. 
+<!-- Para identificar si realmente son valores erróneos que debamos tratar jugamos también con la variable `Parch`, dada la relación entre ambas, especialmente para los valores más elevados: los registros con una cantidad elevada de hermanos es probable que viajen en familia junto a sus padres, por lo que debería haber cierta correspondencia (registro con $n$ hermanos) -> (uno o dos registros con $n$ hijos).  -->
+Para identificar si realmente son valores erróneos que debemos tratar podemos estudiar cuanta gente con más de 3 hermanos comparte el mismo apellido:
+
+```{r}
+# Filtramos los valores extremos
+ManySiblings = df[df['SibSp']>3,]
+# Obtenemos el apellido
+ManySiblings[, 'Surname'] = sapply(ManySiblings[, 'Name'],
+                                   function(x){strsplit(x, ",")[[1]][1]})
+# Obtenemos la tabla:
+table(ManySiblings[,c('SibSp', 'Surname')])
+```
+Como podemos ver en todos los grupos excepto en el de los apellidados Andersson hay $n+1$ hermanos, donde $n$ es el número de hermanos índicados por todos ellos. Consideramos por lo tanto que todos estos valores son correctos.
+Estudiamos con más detalle la familia la familia Andersson:
+
+```{r}
+ManySiblings[ManySiblings['Surname']=='Andersson',]
+```
+
+Como podemos ver hay dos registros que destacan por edad y por ticket, 
+los registros 69 y 1106, y que además no están casadas, como indica el título 'Miss.'.
+Consideramos por lo tanto que el atributo `SibSp` de estos dos registros es erróneo, y lo convertimos a `NA`:
+
+```{r}
+df[c(69, 1106), 'SibSp'] = NA
+```
+
+### Variable `Parch`
+
+El diagrama de caja de la variable `Parch` muestra que numéricamente todos los valores no cero son valores extremos. 
+Estudiamos más en detalle aquellos registros con más de 4 descendientes en el Titanic, 
+y vemos si lo podemos corresponder con las familias de hermanos recién identificadas:
+
+```{r}
+# Filtramos los valores extremos
+ManyDescendants = df[df['Parch']>4,]
+# Obtenemos el apellido
+ManyDescendants[, 'Surname'] = sapply(ManyDescendants[, 'Name'],
+                                      function(x){strsplit(x, ",")[[1]][1]})
+# Obtenemos la tabla:
+table(ManyDescendants[,c('Parch', 'Surname')])
+```
+Como podemos ver se corresponde perfectamente con las familias identificadas previamente, una vez corregidas los dos registros 'Andersson' erróneos, 
+por lo que no son realmente valores extremos.
+
+### Variable `Fare`
+
+En el diagrama de la variable `Fare` vemos que hay muchos valores que numéricamente son valores extremos 
+En este caso nos limitamos a verificar que todos los registros con tarifa muy elevada son de primera clase:
+
+```{r}
+all(na.omit(df[df['Fare']>200,'Pclass'] == 1))
+```
+
+Hemos utilizado la función `na.omit()` debido al registro con `Fare` desconocido que ya conocemos. 
+Vemos que obviado este valor todos los registros corresponden efectivamente a personas que viajaron en primera clase, por lo que damos los valores de `Fare` por válidos.
+
+## Tratamiento de valores nulos
+
+Recapitulando tenemos que tratar
+
++ 263 valores perdidos en la variable `Age`,
+
++ 2 valores perdidos en la variable `SibSp`
+
++ 1 valor perdido en la varaible `Fare`,
+
++ 1014 valores perdidos en la variable `Cabin`, y
+
++ 2 valores perdidos en la variable `Embarked`. 
+
+El caso de la variable `Cabin` es el más claro: 
+tanto la variedad de la variable como la cantidad de registros perdidos (casi 3/4)
+nos obligan a eliminarla:
+
+```{r}
+df = df[, names(df) != 'Cabin']
+```
+
+
+Hecho esto resulta interesante estudiar las posibles combinaciones de valores desconocidos, 
+dado que esto dificultara las posibles inputaciones que queramos hacer.
+Afortunadamente no hay registros con más de un `NA`:
+
+```{r}
+VIM::aggr(Filter(anyNA, df[,-2]), combine = TRUE, bars = FALSE)
+```
+
+### Variable `Embarked`
+
+Observemos los registros:
+
+```{r}
+df[is.na(df['Embarked']),]
+```
+
+Vemos que compartían ticket, pero nadie más lo compartia con ellas:
+
+```{r}
+df[df['Ticket'] == 113572,]
+```
+
+Como no tenían familia a bordo tampoco parece que utilizar sus apellidos vaya a ser una buena opción, por lo que decidimos descartar ambos registros:
+
+```{r}
+df = df[-c(62, 830),]
+```
+
+### Variable `Fare`. ¡¡¡ESTE ES DE TEST!!!
+
+Observemos el registro:
+
+```{r}
+df[is.na(df['Fare']),]
+```
+
+Como el registro pertenece a la tercera clase y no tiene familia embarcada le inputamos la media de tarifas de este subgrupo:
+
+```{r}
+df[is.na(df['Fare']),'Fare']= 
+  mean(df[df['Pclass'] == 3 & df['SibSp'] == 0 & df['Parch'] == 0,'Fare'], na.rm = TRUE)
+```
+
+### Variable `Age`
+
+Finalmente llegamos a la variable más complicada, `Age`. 
+El número de registros sin edad informada hace inviable eliminarlos todos, 
+por lo que lo más sensato parece tratar de inputarles valores. 
+
+Para ello utilizaremos tanto la clase (guardada en `Pclass`) como el ''Título'', 
+que extraemos del nombre usando *regex* y convertimos a factor:
+
+```{r}
+df[, 'Title'] = sapply(df[, 'Name'], function(x){trimws(strsplit(x, "[,.] ")[[1]][2])})
+df[, 'Title'] = factor(df[, 'Title'])
+```
+
+El código que tenemos encima divide el nombre de cada registro en 3, 
+dividiendo tanto por coma como por punto y elimina los espacios a ambos extremos.
+La distribución de títulos en los registros con edad informada y aquellos en los que no es como sigue:
+
+```{r}
+table(droplevels(df[!is.na(df['Age']), 'Title']))
+table(droplevels(df[is.na(df['Age']), 'Title']))
+```
+
+Como vemos los títulos de aquellos registros sin edad informada son de los más comunes, 
+por lo que parece viable utilizar esta información.
+
 
 
