@@ -1,7 +1,7 @@
 Limpieza y análisis del *dataset* Titanic
 ---
-<center>![](https://upload.wikimedia.org/wikipedia/commons/d/d7/Sea_Trials_of_RMS_Titanic%2C_2nd_of_April_1912.jpg)</center>
-<center>[*Sea Trials of RMS Titanic*](https://upload.wikimedia.org/wikipedia/commons/d/d7/Sea_Trials_of_RMS_Titanic%2C_2nd_of_April_1912.jpg), de Wikipedia</center>
+
+![[*Sea Trials of RMS Titanic*](https://upload.wikimedia.org/wikipedia/commons/d/d7/Sea_Trials_of_RMS_Titanic%2C_2nd_of_April_1912.jpg), de Wikipedia](https://upload.wikimedia.org/wikipedia/commons/d/d7/Sea_Trials_of_RMS_Titanic%2C_2nd_of_April_1912.jpg)
 
 ### Análisis de la supervivencia a bordo del Titanic
 
