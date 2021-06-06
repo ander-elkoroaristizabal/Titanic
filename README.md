@@ -1,9 +1,11 @@
 Limpieza y análisis del *dataset* Titanic
 ---
 
-<center>![](Titanic.jpg)
+<center>
+![](Titanic.jpg)
 [*Sea Trials of RMS Titanic*](https://upload.wikimedia.org/wikipedia/commons/d/d7/Sea_Trials_of_RMS_Titanic%2C_2nd_of_April_1912.jpg), de Wikipedia
 <center/>
+
 
 ### Análisis de la supervivencia a bordo del Titanic
 
