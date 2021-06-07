@@ -3,14 +3,14 @@ title: "Limpieza y análisis del *dataset TITANIC*"
 author: "Ander Elkoroaristizabal"
 date: "Junio 2021"
 output: 
-    pdf_document: 
-      toc: yes
     html_document: 
       toc: yes
       df_print: kable
       keep_md: yes
       self_contained: yes
       mode: selfcontained
+    pdf_document: 
+      toc: yes
 editor_options: 
   chunk_output_type: console
 ---

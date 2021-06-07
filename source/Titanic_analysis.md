@@ -1544,7 +1544,7 @@ cat(C5fit$finalModel$output)
 
 ```
 ## 
-## C5.0 [Release 2.07 GPL Edition]  	Mon Jun  7 22:05:06 2021
+## C5.0 [Release 2.07 GPL Edition]  	Mon Jun  7 22:12:16 2021
 ## -------------------------------
 ## 
 ## Class specified by attribute `outcome'
@@ -1764,4 +1764,4 @@ Este documento está disponible en 3 formatos:
 Los datos finales analizados están en la carpeta `data` del repositorio, 
 más concretamente el siguiente enlace:
 
-https://github.com/ander-elkoroaristizabal/Titanic/blob/main/data/train_data.csv
+https://github.com/ander-elkoroaristizabal/Titanic/blob/main/data/train_clean.csv
