@@ -19,4 +19,4 @@ La organización del repositorio es como sigue:
 
 + **Fichero README.md:** fichero actual con información genérica del repositorio.
 + **Carpeta *source*:** carpeta con el código original en formato RMarkdown (.rmd) y los documentos de salida en diferentes formatos: pdf, html y markdown. 
-+ **Capeta *data*:** carpeta con los dos conjuntos de datos originales tal y como los podemos descargar de *Kaggle* y el fichero *all_data_clean.csv* con los datos límpios después del procesamiento. 
++ **Capeta *data*:** carpeta con los dos conjuntos de datos originales tal y como los podemos descargar de *Kaggle* (train.csv y test.csv) y también limpios, después del procesamiento (train_clean.csv y test_clean.csv).
