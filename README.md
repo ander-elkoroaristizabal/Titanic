@@ -1,4 +1,4 @@
-Limpieza y análisis del *dataset* Titanic
+Limpieza y análisis del *dataset* TITANIC
 ---
 
 ![](Titanic.jpg)
